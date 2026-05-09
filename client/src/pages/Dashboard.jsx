@@ -7,15 +7,15 @@ import AnalyzerTab from "./tabs/AnalyzerTab";
 import SettingsTab from "./tabs/SettingsTab";
 
 const TABS = [
-  { id: "customers", label: "👥 Customers" },
-  { id: "config", label: "⚙️ Config" },
   { id: "generate", label: "📄 Generate Bill" },
   { id: "analyzer", label: "📊 Bill Analyzer" },
+  { id: "customers", label: "👥 Customers" },
+  { id: "config", label: "⚙️ Config" },
   { id: "settings", label: "🎨 Invoice Settings" },
 ];
 
 export default function Dashboard() {
-  const [activeTab, setActiveTab] = useState("customers");
+  const [activeTab, setActiveTab] = useState("generate");
   const { username, logout } = useAuth();
 
   const renderTab = () => {

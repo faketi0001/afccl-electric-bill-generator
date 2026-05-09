@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import api from "../../api";
 import { generateInvoicePDF } from "../../utils/pdfGenerator";
 import { downloadFilteredInvoicesXlsx } from "../../utils/xlsxDownload";
@@ -15,6 +15,8 @@ export default function AnalyzerTab() {
   const [monthFilter, setMonthFilter] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
   const [settings, setSettings] = useState({});
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(50);
 
   const load = async () => {
     const [inv, s] = await Promise.all([
@@ -29,20 +31,57 @@ export default function AnalyzerTab() {
     load();
   }, []);
 
-  const filtered = invoices.filter((i) => {
-    if (filter !== "all" && i.status !== filter) return false;
-    if (monthFilter && i.billMonth !== monthFilter) return false;
-    if (searchQuery) {
-      const q = searchQuery.toLowerCase();
-      const match =
-        i.invoiceNo?.toLowerCase().includes(q) ||
-        i.customer?.name?.toLowerCase().includes(q) ||
-        i.customer?.meterNo?.toLowerCase().includes(q) ||
-        i.customer?.address?.toLowerCase().includes(q);
-      if (!match) return false;
+  const filtered = useMemo(() => {
+    const q = searchQuery.trim().toLowerCase();
+    return invoices.filter((i) => {
+      if (filter !== "all" && i.status !== filter) return false;
+      if (monthFilter && i.billMonth !== monthFilter) return false;
+      if (q) {
+        const match =
+          i.invoiceNo?.toLowerCase().includes(q) ||
+          i.customer?.name?.toLowerCase().includes(q) ||
+          i.customer?.meterNo?.toLowerCase().includes(q) ||
+          i.customer?.address?.toLowerCase().includes(q);
+        if (!match) return false;
+      }
+      return true;
+    });
+  }, [invoices, filter, monthFilter, searchQuery]);
+
+  useEffect(() => {
+    setPage(1);
+  }, [filter, monthFilter, searchQuery, pageSize]);
+
+  const totalPages = Math.max(1, Math.ceil(filtered.length / pageSize));
+
+  useEffect(() => {
+    if (page > totalPages) setPage(totalPages);
+  }, [page, totalPages]);
+
+  const pageStart = (page - 1) * pageSize;
+  const pageEnd = Math.min(pageStart + pageSize, filtered.length);
+  const pagedInvoices = filtered.slice(pageStart, pageEnd);
+
+  const pageNumbers = useMemo(() => {
+    if (totalPages <= 7) {
+      return Array.from({ length: totalPages }, (_, i) => i + 1);
     }
-    return true;
-  });
+
+    const pages = new Set([1, totalPages, page - 1, page, page + 1]);
+    const ordered = Array.from(pages)
+      .filter((p) => p >= 1 && p <= totalPages)
+      .sort((a, b) => a - b);
+    const output = [];
+
+    for (let i = 0; i < ordered.length; i += 1) {
+      if (i > 0 && ordered[i] - ordered[i - 1] > 1) {
+        output.push("...");
+      }
+      output.push(ordered[i]);
+    }
+
+    return output;
+  }, [page, totalPages]);
 
   const toggleStatus = async (inv) => {
     const newStatus = inv.status === "paid" ? "unpaid" : "paid";
@@ -164,9 +203,67 @@ export default function AnalyzerTab() {
         </button>
       </div>
 
+      <div
+        style={{
+          display: "flex",
+          flexWrap: "wrap",
+          gap: "0.75rem",
+          alignItems: "center",
+          marginBottom: "0.75rem",
+        }}
+      >
+        <div style={{ fontSize: "0.85rem", color: "#4a5568" }}>
+          Showing {filtered.length ? pageStart + 1 : 0}-{pageEnd} of{" "}
+          {filtered.length}
+        </div>
+        <div style={{ display: "flex", alignItems: "center", gap: "0.4rem" }}>
+          <span style={{ fontSize: "0.85rem", color: "#4a5568" }}>Rows</span>
+          <select
+            className="form-input"
+            value={pageSize}
+            onChange={(e) => setPageSize(Number(e.target.value))}
+            style={{ maxWidth: "110px" }}
+          >
+            {[25, 50, 100, 200, 500].map((size) => (
+              <option key={size} value={size}>
+                {size}
+              </option>
+            ))}
+          </select>
+        </div>
+        <div style={{ display: "flex", gap: "0.35rem", flexWrap: "wrap" }}>
+          <span style={{ fontSize: "0.85rem", color: "#4a5568" }}>
+            Page {page} of {totalPages}
+          </span>
+          {pageNumbers.map((p, index) =>
+            p === "..." ? (
+              <span
+                key={`gap-${index}`}
+                style={{ padding: "0.3rem 0.4rem", color: "#a0aec0" }}
+              >
+                ...
+              </span>
+            ) : (
+              <button
+                key={p}
+                type="button"
+                className={`btn ${p === page ? "btn-primary" : ""}`}
+                onClick={() => setPage(p)}
+                style={{ padding: "0.3rem 0.6rem" }}
+              >
+                {p}
+              </button>
+            ),
+          )}
+        </div>
+      </div>
+
       {/* Table */}
-      <div className="table-responsive">
-        <table>
+      <div
+        className="table-responsive"
+        style={{ overflowX: "auto", WebkitOverflowScrolling: "touch" }}
+      >
+        <table style={{ minWidth: "900px" }}>
           <thead>
             <tr>
               {[
@@ -184,7 +281,7 @@ export default function AnalyzerTab() {
             </tr>
           </thead>
           <tbody>
-            {filtered.map((inv) => (
+            {pagedInvoices.map((inv) => (
               <tr key={inv._id}>
                 <td style={{ fontFamily: "monospace", fontSize: "0.8rem" }}>
                   {inv.invoiceNo}
