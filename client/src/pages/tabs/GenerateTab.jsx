@@ -23,6 +23,7 @@ export default function GenerateTab() {
   });
   const [preview, setPreview] = useState(null);
   const [msg, setMsg] = useState("");
+  const [msgType, setMsgType] = useState("success");
   const [customerSearch, setCustomerSearch] = useState("");
 
   useEffect(() => {
@@ -67,10 +68,32 @@ export default function GenerateTab() {
         dueDate: form.dueDate || null,
       });
       setMsg(`Invoice ${res.data.invoiceNo} created!`);
+      setMsgType("success");
 
       // Auto-download PDF
       generateInvoicePDF(res.data, settings);
+
+      setForm({
+        customerId: "",
+        billMonth: "",
+        previousReading: "",
+        currentReading: "",
+        fine: 0,
+        fineNote: "",
+        dueDate: "",
+      });
+      setCustomerSearch("");
+      setPreview(null);
     } catch (err) {
+      if (err.response?.status === 409) {
+        setMsgType("warning");
+        setMsg(
+          err.response?.data?.message ||
+            "Invoice already exists for this customer and month",
+        );
+        return;
+      }
+      setMsgType("error");
       setMsg(err.response?.data?.message || "Error creating invoice");
     }
   };
@@ -83,9 +106,11 @@ export default function GenerateTab() {
           {msg && (
             <p
               className={
-                msg.includes("Error")
-                  ? "message message-error"
-                  : "message message-success"
+                msgType === "warning"
+                  ? "message message-warning"
+                  : msgType === "error"
+                    ? "message message-error"
+                    : "message message-success"
               }
             >
               {msg}

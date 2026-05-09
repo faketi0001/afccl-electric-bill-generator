@@ -626,8 +626,8 @@ td {
 }
 
 .status-unpaid {
-    background: #fed7d7;
-    color: #742a2a;
+    background: #fefcbf;
+    color: #744210;
 }
 
 /* Spacing Utilities */
@@ -683,6 +683,12 @@ td {
     background: #fed7d7;
     color: #742a2a;
     border-left: 4px solid #e53e3e;
+}
+
+.message-warning {
+    background: #fefcbf;
+    color: #744210;
+    border-left: 4px solid #d69e2e;
 }
 
 /* Login Page */
