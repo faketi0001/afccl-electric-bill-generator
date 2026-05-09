@@ -118,7 +118,7 @@ export default function GenerateTab() {
 
           <label style={lbl}>
             Due Date
-            <input type="date" value={form.dueDate} onChange={e => setForm({...form, dueDate:e.target.value})} style={inp} />
+            <input type="date" value={form.dueDate} onChange={e => setForm({...form, dueDate:e.target.value})} style={inp} required />
           </label>
 
           <button type="submit" style={{ padding:'0.75rem', background:'#2f855a', color:'#fff', border:'none', borderRadius:'4px', cursor:'pointer', fontWeight:'600', fontSize:'1rem' }}>
