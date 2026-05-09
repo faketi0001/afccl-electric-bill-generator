@@ -3,6 +3,12 @@ import api from "../../api";
 import { generateInvoicePDF } from "../../utils/pdfGenerator";
 import { downloadFilteredInvoicesXlsx } from "../../utils/xlsxDownload";
 
+const supportsMonthInput = (() => {
+  const input = document.createElement("input");
+  input.setAttribute("type", "month");
+  return input.type === "month";
+})();
+
 export default function AnalyzerTab() {
   const [invoices, setInvoices] = useState([]);
   const [filter, setFilter] = useState("all"); // all | paid | unpaid
@@ -78,14 +84,7 @@ export default function AnalyzerTab() {
       <h2>Bill Analyzer</h2>
 
       {/* Stats cards */}
-      <div
-        style={{
-          display: "grid",
-          gridTemplateColumns: "repeat(3,1fr)",
-          gap: "1rem",
-          marginBottom: "2rem",
-        }}
-      >
+      <div className="grid-3 mb-2">
         {[
           { label: "Total Invoices", value: filtered.length, color: "#3182ce" },
           {
@@ -101,32 +100,11 @@ export default function AnalyzerTab() {
         ].map((s) => (
           <div
             key={s.label}
-            style={{
-              background: "#fff",
-              padding: "1.25rem",
-              borderRadius: "8px",
-              boxShadow: "0 1px 3px rgba(0,0,0,0.1)",
-              borderLeft: `4px solid ${s.color}`,
-            }}
+            className="card card-border-left"
+            style={{ borderLeftColor: s.color }}
           >
-            <div
-              style={{
-                color: "#718096",
-                fontSize: "0.8rem",
-                textTransform: "uppercase",
-                letterSpacing: "0.05em",
-              }}
-            >
-              {s.label}
-            </div>
-            <div
-              style={{
-                fontSize: "1.5rem",
-                fontWeight: "700",
-                color: s.color,
-                marginTop: "0.25rem",
-              }}
-            >
+            <div className="card-label">{s.label}</div>
+            <div className="card-value" style={{ color: s.color }}>
               {s.value}
             </div>
           </div>
@@ -134,29 +112,22 @@ export default function AnalyzerTab() {
       </div>
 
       {/* Filter and Search */}
-      <div
-        style={{
-          display: "flex",
-          gap: "1rem",
-          marginBottom: "1rem",
-          flexWrap: "wrap",
-          alignItems: "center",
-        }}
-      >
-        <div style={{ display: "flex", gap: "0.5rem" }}>
+      <div className="flex-wrap mb-2">
+        <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap" }}>
           {["all", "paid", "unpaid"].map((f) => (
             <button
               key={f}
               onClick={() => setFilter(f)}
-              style={{
-                padding: "0.4rem 1rem",
-                border: "1px solid #e2e8f0",
-                borderRadius: "20px",
-                cursor: "pointer",
-                background: filter === f ? "#3182ce" : "#fff",
-                color: filter === f ? "#fff" : "#4a5568",
-                fontWeight: filter === f ? "600" : "400",
-              }}
+              className={`btn btn-pill ${filter === f ? "btn-primary" : ""}`}
+              style={
+                filter === f
+                  ? {}
+                  : {
+                      background: "#fff",
+                      color: "#4a5568",
+                      border: "1px solid #e2e8f0",
+                    }
+              }
             >
               {f.charAt(0).toUpperCase() + f.slice(1)}
             </button>
@@ -164,64 +135,40 @@ export default function AnalyzerTab() {
         </div>
 
         <input
-          type="month"
+          type={supportsMonthInput ? "month" : "text"}
+          className="form-input"
           value={monthFilter}
           onChange={(e) => setMonthFilter(e.target.value)}
-          style={{
-            padding: "0.4rem 0.8rem",
-            border: "1px solid #e2e8f0",
-            borderRadius: "4px",
-          }}
+          inputMode="numeric"
+          placeholder="YYYY-MM"
+          pattern="\\d{4}-\\d{2}"
+          title="Use YYYY-MM format"
+          style={{ maxWidth: "150px" }}
         />
 
         <input
           type="text"
+          className="search-input"
           placeholder="Search Invoice, Name, Meter, Address..."
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
-          style={{
-            padding: "0.4rem 0.8rem",
-            border: "1px solid #e2e8f0",
-            borderRadius: "20px",
-            minWidth: "280px",
-          }}
         />
 
         <button
           type="button"
           onClick={handleDownloadXlsx}
-          style={{
-            padding: "0.4rem 1rem",
-            border: "none",
-            borderRadius: "20px",
-            cursor: "pointer",
-            background: "#2b6cb0",
-            color: "#fff",
-            fontWeight: "600",
-          }}
+          className="btn btn-primary"
+          style={{ background: "#2b6cb0" }}
         >
           Download XLSX
         </button>
       </div>
 
       {/* Table */}
-      <div
-        style={{
-          background: "#fff",
-          borderRadius: "8px",
-          boxShadow: "0 1px 3px rgba(0,0,0,0.1)",
-          overflow: "auto",
-        }}
-      >
-        <table
-          style={{
-            width: "100%",
-            borderCollapse: "collapse",
-            fontSize: "0.9rem",
-          }}
-        >
+      <div className="table-responsive">
+        <table>
           <thead>
-            <tr style={{ background: "#ebf8ff" }}>
+            <tr>
               {[
                 "Invoice No",
                 "Customer",
@@ -232,103 +179,84 @@ export default function AnalyzerTab() {
                 "Paid Date",
                 "Actions",
               ].map((h) => (
-                <th
-                  key={h}
-                  style={{
-                    padding: "0.75rem 1rem",
-                    textAlign: "left",
-                    fontSize: "0.75rem",
-                    fontWeight: "700",
-                    color: "#2d3748",
-                    textTransform: "uppercase",
-                    whiteSpace: "nowrap",
-                  }}
-                >
-                  {h}
-                </th>
+                <th key={h}>{h}</th>
               ))}
             </tr>
           </thead>
           <tbody>
             {filtered.map((inv) => (
-              <tr key={inv._id} style={{ borderTop: "1px solid #e2e8f0" }}>
-                <td
-                  style={{
-                    padding: "0.6rem 1rem",
-                    fontFamily: "monospace",
-                    fontSize: "0.8rem",
-                  }}
-                >
+              <tr key={inv._id}>
+                <td style={{ fontFamily: "monospace", fontSize: "0.8rem" }}>
                   {inv.invoiceNo}
                 </td>
-                <td style={{ padding: "0.6rem 1rem" }}>{inv.customer?.name}</td>
-                <td
-                  style={{
-                    padding: "0.6rem 1rem",
-                    fontFamily: "monospace",
-                    fontSize: "0.8rem",
-                  }}
-                >
+                <td>{inv.customer?.name}</td>
+                <td style={{ fontFamily: "monospace", fontSize: "0.8rem" }}>
                   {inv.customer?.meterNo}
                 </td>
-                <td style={{ padding: "0.6rem 1rem" }}>{inv.billMonth}</td>
-                <td
-                  style={{
-                    padding: "0.6rem 1rem",
-                    fontFamily: "monospace",
-                    fontWeight: "600",
-                  }}
-                >
+                <td>{inv.billMonth}</td>
+                <td style={{ fontFamily: "monospace", fontWeight: "600" }}>
                   ৳ {inv.totalAmount?.toFixed(2)}
                 </td>
-                <td style={{ padding: "0.6rem 1rem" }}>
+                <td>
                   <span
-                    style={{
-                      padding: "0.2rem 0.6rem",
-                      borderRadius: "12px",
-                      fontSize: "0.75rem",
-                      fontWeight: "600",
-                      background: inv.status === "paid" ? "#c6f6d5" : "#fed7d7",
-                      color: inv.status === "paid" ? "#22543d" : "#742a2a",
-                    }}
+                    className={`status-badge ${inv.status === "paid" ? "status-paid" : "status-unpaid"}`}
                   >
                     {inv.status.toUpperCase()}
                   </span>
                 </td>
-                <td style={{ padding: "0.6rem 1rem", fontSize: "0.8rem" }}>
+                <td style={{ fontSize: "0.8rem" }}>
                   {inv.paidAt ? new Date(inv.paidAt).toLocaleDateString() : "-"}
                 </td>
                 <td
-                  style={{
-                    padding: "0.6rem 1rem",
-                    display: "flex",
-                    gap: "0.4rem",
-                    flexWrap: "wrap",
-                  }}
+                  style={{ display: "flex", gap: "0.4rem", flexWrap: "wrap" }}
                 >
                   <button
                     onClick={() => handleDownload(inv, false)}
-                    style={btnSm("#3182ce")}
+                    className="btn"
+                    style={{
+                      padding: "0.25rem 0.5rem",
+                      fontSize: "0.75rem",
+                      background: "#3182ce",
+                      color: "#fff",
+                    }}
                   >
                     PDF
                   </button>
                   {inv.status === "paid" && (
                     <button
                       onClick={() => handleDownload(inv, true)}
-                      style={btnSm("#2f855a")}
+                      className="btn"
+                      style={{
+                        padding: "0.25rem 0.5rem",
+                        fontSize: "0.75rem",
+                        background: "#2f855a",
+                        color: "#fff",
+                      }}
                     >
                       PAID PDF
                     </button>
                   )}
                   <button
                     onClick={() => toggleStatus(inv)}
-                    style={btnSm(inv.status === "paid" ? "#d69e2e" : "#38a169")}
+                    className="btn"
+                    style={{
+                      padding: "0.25rem 0.5rem",
+                      fontSize: "0.75rem",
+                      background: inv.status === "paid" ? "#d69e2e" : "#38a169",
+                      color: "#fff",
+                    }}
                   >
                     {inv.status === "paid" ? "Unpaid" : "Mark Paid"}
                   </button>
                   <button
                     onClick={() => handleDelete(inv._id)}
-                    style={btnSm("#e53e3e")}
+                    className="btn"
+                    style={{
+                      padding: "0.25rem 0.5rem",
+                      fontSize: "0.75rem",
+                      background: "#e53e3e",
+                      color: "#fff",
+                    }}
                   >
                     Del
                   </button>
@@ -355,14 +283,3 @@ export default function AnalyzerTab() {
     </div>
   );
 }
-
-const btnSm = (bg) => ({
-  padding: "0.25rem 0.5rem",
-  background: bg,
-  color: "#fff",
-  border: "none",
-  borderRadius: "4px",
-  cursor: "pointer",
-  fontSize: "0.75rem",
-  whiteSpace: "nowrap",
-});
